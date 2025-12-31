@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>10분 카운트다운</title>
+
+  <style>
+    body{
+      margin:0;
+      background:#ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+      color:#111;
+    }
+
+    .wrap{
+      width: 920px;
+      max-width: 94vw;
+      margin: 0 auto;
+      text-align:center;
+      padding: 24px 0 40px;
+      box-sizing: border-box;
+    }
+
+    h1{
+      margin: 6px 0 14px;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    /* 타이머 숫자 */
+    #time{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 56px;
+      letter-spacing: 2px;
+      margin: 10px 0 12px;
+    }
+    .red{ color:#d30000; }
+
+    /* 버튼 한 줄 */
+    .btnRow{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:10px;
+      flex-wrap:nowrap;
+      margin: 10px 0 18px;
+    }
+
+    button{
+      border:2px solid #111;
+      background:#fff;
+      color:#111;
+      padding:10px 12px;
+      font-size:16px;
+      cursor:pointer;
+      box-sizing:border-box;
+      white-space:nowrap;
+      min-width: 110px;
+    }
+    button:active{ transform: translateY(1px); }
+
+    /* 진행 바 영역 */
+    .trackWrap{
+      width: 860px;
+      max-width: 94vw;
+      margin: 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
+      box-sizing:border-box;
+    }
+
+    .sideImg{
+      width: 84px;
+      height: auto;
+      display:block;
+    }
+
+    .trackArea{
+      position:relative;
+      width: 620px;
+      max-width: calc(94vw - 220px);
+    }
+
+    .track{
+      position:relative;
+      width: 100%;
+      height: 26px;
+      border:2px solid #111;
+      box-sizing:border-box;
+      overflow:hidden;
+      background:#fff;
+    }
+
+    .fill{
+      position:absolute;
+      left:0;
+      top:0;
+      height:100%;
+      width:0%;
+      background:#111;
+    }
+
+    #man{
+      position:absolute;
+      top: -34px;
+      left: 0px;
+      width: 42px;
+      height:auto;
+      user-select:none;
+      -webkit-user-drag:none;
+      pointer-events:none;
+    }
+
+    /* 기록 영역 */
+    .logWrap{
+      width: 860px;
+      max-width: 94vw;
+      margin: 18px auto 0;
+      text-align:left;
+      box-sizing:border-box;
+    }
+
+    .logTitle{
+      font-weight:700;
+      margin-bottom: 8px;
+    }
+
+    .logList{
+      border:2px solid #111;
+      padding: 10px 12px;
+      box-sizing:border-box;
+      min-height: 140px;
+    }
+
+    .logRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin: 8px 0;
+    }
+
+    .stamp{
+      width: 110px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 14px;
+      white-space:nowrap;
+    }
+
+    .logInput{
+      flex: 1;
+      border:2px solid #111;
+      padding:10px 12px;
+      font-size:14px;
+      box-sizing:border-box;
+    }
+
+    .hint{
+      font-size: 12px;
+      margin-top: 8px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>10분 카운트다운</h1>
+
+    <!-- ✅ 10:00:00 표시 -->
+    <div id="time">10:00:00</div>
+
+    <div class="btnRow">
+      <button onclick="show('page-start')">시작</button>
+      <button onclick="show('page-toggle')">▶ / II</button>
+      <button onclick="show('page-log')">기록하기</button>
+      <button onclick="show('page-reset')">리셋</button>
+    </div>
+
+    <div class="trackWrap">
+      <img src="static/home.png" alt="home" class="sideImg" style="width:84px;">
+
+      <div class="trackArea" id="trackArea">
+        <img id="man" src="static/man.png" alt="man" style="width:42px;">
+        <div class="track" id="track">
+          <div class="fill" id="fill"></div>
+        </div>
+      </div>
+
+      <img src="static/mart.png" alt="mart" class="sideImg" style="width:84px;">
+    </div>
+
+    <div class="logWrap">
+      <div class="logTitle">기록</div>
+      <div class="logList" id="logList"></div>
+      <div class="hint">기록하기를 누르면 현재 시간이 추가되고, 오른쪽 칸에 메모를 적을 수 있어요.</div>
+    </div>
+
+    <audio id="alarm" src="static/alarm.mp3" preload="auto"></audio>
+  </div>
+
+  <script>
+    /**************************************************************
+     * ✅ "속도감"을 위해 10:00:00 (분:초:센티초) 표시
+     * - 센티초 = 1/100초
+     * - tick은 requestAnimationFrame 기반(부드럽게 감소)
+     **************************************************************/
+    const TOTAL_MS = 10 * 60 * 1000; // 10분
+    let remainingMs = TOTAL_MS;
+
+    let running = false;
+    let rafId = null;
+    let lastTs = 0;
+
+    const timeEl = document.getElementById('time');
+    const fillEl = document.getElementById('fill');
+    const trackEl = document.getElementById('track');
+    const manEl  = document.getElementById('man');
+    const logListEl = document.getElementById('logList');
+    const alarmEl = document.getElementById('alarm');
+
+    function formatTimeMMSSCC(ms){
+      ms = Math.max(0, ms);
+
+      const totalSec = Math.floor(ms / 1000);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+
+      // 센티초(00~99)
+      const centi = Math.floor((ms % 1000) / 10);
+
+      return (
+        String(m).padStart(2,'0') + ":" +
+        String(s).padStart(2,'0') + ":" +
+        String(centi).padStart(2,'0')
+      );
+    }
+
+    function updateUI(){
+      // 마지막 10초 빨간색
+      if(remainingMs <= 10000 && remainingMs > 0) timeEl.classList.add('red');
+      else timeEl.classList.remove('red');
+
+      timeEl.textContent = formatTimeMMSSCC(remainingMs);
+
+      // 진행률
+      const progressed = (TOTAL_MS - remainingMs) / TOTAL_MS;
+      const pct = Math.max(0, Math.min(1, progressed));
+
+      fillEl.style.width = (pct * 100) + "%";
+
+      // man 이동: fill 끝을 따라감
+      const trackW = trackEl.clientWidth;
+      const manW = manEl.getBoundingClientRect().width || 42;
+
+      const x = trackW * pct;
+      const leftPx = x - (manW / 2);
+      manEl.style.left = leftPx + "px";
+    }
+
+    function stopTimer(){
+      running = false;
+      if(rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+      lastTs = 0;
+    }
+
+    function loop(ts){
+      if(!running) return;
+
+      if(!lastTs) lastTs = ts;
+      const dt = ts - lastTs;   // 지난 프레임 시간(ms)
+      lastTs = ts;
+
+      remainingMs -= dt;
+
+      if(remainingMs <= 0){
+        remainingMs = 0;
+        updateUI();
+        stopTimer();
+        try{
+          alarmEl.currentTime = 0;
+          alarmEl.play();
+        }catch(e){}
+        return;
+      }
+
+      updateUI();
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function startTimer(){
+      if(running) return;
+      if(remainingMs <= 0) return;
+      running = true;
+      updateUI();
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function toggleTimer(){
+      if(running) stopTimer();
+      else startTimer();
+    }
+
+    function resetAll(){
+      stopTimer();
+      remainingMs = TOTAL_MS;
+      logListEl.innerHTML = "";
+      try{
+        alarmEl.pause();
+        alarmEl.currentTime = 0;
+      }catch(e){}
+      updateUI();
+    }
+
+    function addLogRow(){
+      const row = document.createElement("div");
+      row.className = "logRow";
+
+      const stamp = document.createElement("div");
+      stamp.className = "stamp";
+      stamp.textContent = `[${formatTimeMMSSCC(remainingMs)}]`;
+
+      const input = document.createElement("input");
+      input.className = "logInput";
+      input.placeholder = "메모 입력";
+
+      row.appendChild(stamp);
+      row.appendChild(input);
+      logListEl.appendChild(row);
+
+      input.focus();
+    }
+
+    function show(pageId){
+      if(pageId === 'page-start') startTimer();
+      if(pageId === 'page-toggle') toggleTimer();
+      if(pageId === 'page-log') addLogRow();
+      if(pageId === 'page-reset') resetAll();
+    }
+
+    // 초기 표시: 10:00:00, man은 왼쪽
+    updateUI();
+    window.addEventListener('resize', updateUI);
+  </script>
+</body>
+</html>
