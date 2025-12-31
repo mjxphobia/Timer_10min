@@ -280,20 +280,36 @@
         remainingMs = 0;
         updateUI();
         stopTimer();
+
+        // ✅ 알람 재생 (확실)
         try{
+          alarmEl.pause();
           alarmEl.currentTime = 0;
           alarmEl.play();
-        }catch(e){}
+        }catch(e){
+          console.log("알람 재생 실패:", e);
+        }
         return;
       }
+
 
       updateUI();
       rafId = requestAnimationFrame(loop);
     }
 
     function startTimer(){
+
+    try{
+      alarmEl.muted = true;
+      alarmEl.play();
+      alarmEl.pause();
+      alarmEl.currentTime = 0;
+      alarmEl.muted = false;
+    }catch(e){}
+
       if(running) return;
       if(remainingMs <= 0) return;
+
       running = true;
       updateUI();
       rafId = requestAnimationFrame(loop);
