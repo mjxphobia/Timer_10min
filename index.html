@@ -1,365 +1,728 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>10분 카운트다운</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>20:00 - NIGHT/DAY</title>
 
-  <style>
-    body{
-      margin:0;
-      background:#ffffff;
-      font-family: Arial, Helvetica, sans-serif;
-      color:#111;
-    }
+<style>
+  html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    overscroll-behavior:none;
+    touch-action:manipulation;
+    font-family: Arial, Helvetica, sans-serif;
+  }
 
-    .wrap{
-      width: 920px;
-      max-width: 94vw;
-      margin: 0 auto;
-      text-align:center;
-      padding: 24px 0 40px;
-      box-sizing: border-box;
-    }
+  body.mode-night{ background:#000; color:#fff; }
+  body.mode-day{   background:#fff; color:#111; }
 
-    h1{
-      margin: 6px 0 14px;
-      font-size: 22px;
-      font-weight: 700;
-    }
+  .wrap{
+    width:100%;
+    height:100%;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    text-align:center;
+  }
 
-    /* 타이머 숫자 */
-    #time{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      font-size: 56px;
-      letter-spacing: 2px;
-      margin: 10px 0 12px;
-    }
-    .red{ color:#d30000; }
+  #stage{
+    width:1100px;
+    transform-origin: top center;
+  }
 
-    /* 버튼 한 줄 */
-    .btnRow{
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      gap:10px;
-      flex-wrap:nowrap;
-      margin: 10px 0 18px;
-    }
+  .box{
+    border:2px solid currentColor;
+    box-sizing:border-box;
+    background:transparent;
+  }
+  .row{
+    width:1024px;
+    max-width:92vw;
+    margin:12px auto 0;
+    box-sizing:border-box;
+  }
 
-    button{
-      border:2px solid #111;
-      background:#fff;
-      color:#111;
-      padding:10px 12px;
-      font-size:16px;
-      cursor:pointer;
-      box-sizing:border-box;
-      white-space:nowrap;
-      min-width: 110px;
-    }
-    button:active{ transform: translateY(1px); }
+  /* 1구역 */
+  .topBar{
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap:10px;
+    align-items:center;
+    padding:10px;
+  }
+  .bigTimer{
+    font-family: ui-monospace, monospace;
+    font-size:54px;
+    font-weight:900;
+    letter-spacing:1px;
+  }
+  .bigTimer.last10{ color:#ff2d2d; }
 
-    /* 진행 바 영역 */
-    .trackWrap{
-      width: 860px;
-      max-width: 94vw;
-      margin: 0 auto;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:14px;
-      box-sizing:border-box;
-    }
+  .btnRow{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    justify-content:flex-end;
+    flex-wrap:nowrap;
+  }
+  button{
+    border:2px solid currentColor;
+    background:transparent;
+    color:inherit;
+    padding:10px 12px;
+    font-weight:800;
+    font-size:14px;
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  button:active{ transform: translateY(1px); }
 
-    .sideImg{
-      width: 84px;
-      height: auto;
-      display:block;
-    }
+  /* 2구역(생명력 + 하트조절 버튼) */
+  .lifeBar{
+    padding:10px;
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap:10px;
+    align-items:center;
+  }
+  .lifeCenter{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:14px;
+    min-width:0;
+  }
+  .lifeLabel{
+    font-size:34px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+  #hearts{
+    font-size:34px;
+    letter-spacing:4px;
+    font-weight:900;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .lifeBtns{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    justify-content:flex-end;
+    white-space:nowrap;
+  }
 
-    .trackArea{
-      position:relative;
-      width: 620px;
-      max-width: calc(94vw - 220px);
-    }
+  /* 3+4구역 */
+  .twoCol{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+  }
+  .panel{
+    padding:10px;
+    min-height:440px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    gap:10px;
+  }
 
-    .track{
-      position:relative;
-      width: 100%;
-      height: 26px;
-      border:2px solid #111;
-      box-sizing:border-box;
-      overflow:hidden;
-      background:#fff;
-    }
+  .panelHead{
+    width:100%;
+    display:flex;
+    justify-content:center;
+    align-items:baseline;
+    gap:14px;
+  }
+  .panelTitle{
+    font-size:34px;
+    font-weight:900;
+  }
+  .panelClock{
+    font-family: ui-monospace, monospace;
+    font-size:34px;
+    font-weight:900;
+  }
 
-    .fill{
-      position:absolute;
-      left:0;
-      top:0;
-      height:100%;
-      width:0%;
-      background:#111;
-    }
+  /* 밤 내용(공격 실패/처치) */
+  .card16x9{
+    width:92%;
+    aspect-ratio: 16/9;
+    border:2px solid currentColor;
+    position:relative;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+  }
+  .card16x9 img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:none;
+  }
 
-    #man{
-      position:absolute;
-      top: -34px;
-      left: 0px;
-      width: 42px;
-      height:auto;
-      user-select:none;
-      -webkit-user-drag:none;
-      pointer-events:none;
-    }
+  .killLine{
+    margin-top:6px;
+    font-size:18px;
+    font-weight:900;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .killBox{
+    width:70px;
+    height:38px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid currentColor;
+    font-family: ui-monospace, monospace;
+    font-size:20px;
+    font-weight:900;
+  }
 
-    /* 기록 영역 */
-    .logWrap{
-      width: 860px;
-      max-width: 94vw;
-      margin: 18px auto 0;
-      text-align:left;
-      box-sizing:border-box;
-    }
+  /* 낮 내용(허기짐) */
+  .hungerWrap{
+    width:92%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .hungerLabel{
+    font-size:18px;
+    font-weight:900;
+  }
+  .hungerBar{
+    width:52px;
+    height:220px;
+    border:2px solid currentColor;
+    position:relative;
+    overflow:hidden;
+  }
+  .hungerFill{
+    position:absolute;
+    left:0;
+    bottom:0;
+    width:100%;
+    height:0%;
+    background: currentColor;
+  }
+  .desc{
+    width:92%;
+    font-size:13px;
+    line-height:1.35;
+    opacity:0.9;
+  }
 
-    .logTitle{
-      font-weight:700;
-      margin-bottom: 8px;
-    }
+  /* 5구역 결과 */
+  .resultBar{
+    padding:12px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .resultLabel{
+    font-size:20px;
+    font-weight:900;
+  }
+  .scoreBox{
+    min-width:62px;
+    height:34px;
+    border:2px solid currentColor;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family: ui-monospace, monospace;
+    font-size:18px;
+    font-weight:900;
+    padding:0 8px;
+  }
 
-    .logList{
-      border:2px solid #111;
-      padding: 10px 12px;
-      box-sizing:border-box;
-      min-height: 140px;
-    }
-
-    .logRow{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      margin: 8px 0;
-    }
-
-    .stamp{
-      width: 110px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      font-size: 14px;
-      white-space:nowrap;
-    }
-
-    .logInput{
-      flex: 1;
-      border:2px solid #111;
-      padding:10px 12px;
-      font-size:14px;
-      box-sizing:border-box;
-    }
-
-    .hint{
-      font-size: 12px;
-      margin-top: 8px;
-      opacity: 0.9;
-    }
-  </style>
+  @media (max-width: 820px){
+    .twoCol{ grid-template-columns: 1fr; }
+    #stage{ width: 980px; }
+  }
+</style>
 </head>
 
-<body>
-  <div class="wrap">
-    <h1>10분 카운트다운</h1>
+<body class="mode-night">
+<div class="wrap">
+  <div id="stage">
 
-    <!-- ✅ 10:00:00 표시 -->
-    <div id="time">10:00:00</div>
-
-    <div class="btnRow">
-      <button onclick="show('page-start')">시작</button>
-      <button onclick="show('page-toggle')">▶ / II</button>
-      <button onclick="show('page-log')">기록하기</button>
-      <button onclick="show('page-reset')">리셋</button>
+    <!-- 1구역 -->
+    <div class="row box topBar">
+      <div id="mainTimer" class="bigTimer">20:00:00</div>
+      <div class="btnRow">
+        <button onclick="uiStart()">시작</button>
+        <button onclick="uiToggle()">▶/Ⅱ</button>
+        <button onclick="uiFast()">빨리감기×10</button>
+        <button onclick="uiReset()">리셋</button>
+      </div>
     </div>
 
-    <div class="trackWrap">
-      <img src="static/home.png" alt="home" class="sideImg" style="width:84px;">
+    <!-- 2구역 -->
+    <div class="row box lifeBar">
+      <div class="lifeCenter">
+        <div class="lifeLabel">생명력</div>
+        <div id="hearts">♥♥♥♥♥♥♥♥♥♥</div>
+      </div>
+      <div class="lifeBtns">
+        <button onclick="lifeMinus()">♥-1</button>
+        <button onclick="lifePlus()">♥+1</button>
+      </div>
+    </div>
 
-      <div class="trackArea" id="trackArea">
-        <img id="man" src="static/man.png" alt="man" style="width:42px;">
-        <div class="track" id="track">
-          <div class="fill" id="fill"></div>
+    <!-- 3+4구역 -->
+    <div class="row twoCol">
+
+      <!-- 왼쪽: 밤(공격 실패/처치) -->
+      <div class="box panel" id="nightPanel">
+        <div class="panelHead">
+          <div class="panelTitle">밤</div>
+          <div id="nightClock" class="panelClock">02:00</div>
+        </div>
+
+        <div class="card16x9">
+          <img id="failImg" src="static/fail.png" alt="fail">
+        </div>
+
+        <button onclick="nightFail()">공격 실패</button>
+
+        <div class="killLine">
+          좀비 처치 누적 횟수
+          <span class="killBox" id="killBox">0</span>
+          마리
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button onclick="killAdd(1)">성공</button>
+          <button onclick="killAdd(-1)">-1</button>
         </div>
       </div>
 
-      <img src="static/mart.png" alt="mart" class="sideImg" style="width:84px;">
+      <!-- 오른쪽: 낮(허기짐) -->
+      <div class="box panel" id="dayPanel">
+        <div class="panelHead">
+          <div class="panelTitle">낮</div>
+          <div id="dayClock" class="panelClock">02:00</div>
+        </div>
+
+        <div class="hungerWrap">
+          <div class="hungerLabel">허기짐</div>
+          <div class="hungerBar">
+            <div id="hungerFill" class="hungerFill"></div>
+          </div>
+
+          <button onclick="daySuccess()">성공</button>
+
+          <div class="desc">
+            1) 허기짐 게이지는 30초에 가득 차요(낮에만 진행).<br>
+            2) 다 차면 생명력 ♥가 오른쪽부터 1개 줄어요.<br>
+            3) “성공”은 하트를 채우고 게이지를 리셋해요(칸 증가는 안 함).<br>
+            4) 생명력 구역의 ♥+1만 “칸 증가(추가 하트 생성)”가 가능해요.
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="logWrap">
-      <div class="logTitle">기록</div>
-      <div class="logList" id="logList"></div>
-      <div class="hint">기록하기를 누르면 현재 시간이 추가되고, 오른쪽 칸에 메모를 적을 수 있어요.</div>
+    <!-- 5구역 -->
+    <div class="row box resultBar">
+      <div class="resultLabel">결과:</div>
+      <div class="scoreBox" id="deathBox">0</div>
+      <div class="resultLabel">DEATH</div>
+      <div class="scoreBox" id="killScoreBox">0</div>
+      <div class="resultLabel">KILL</div>
     </div>
 
-    <audio id="alarm" src="static/alarm.mp3" preload="auto"></audio>
+    <!-- 오디오 -->
+    <audio id="aAlarm"  src="static/alarm.mp3" preload="auto"></audio>
+    <audio id="aChange" src="static/change.mp3" preload="auto"></audio>
+    <audio id="aDay"    src="static/day.mp3" preload="auto"></audio>
+    <audio id="aNight"  src="static/night.mp3" preload="auto"></audio>
+
+    <audio id="aEmpty"  src="static/emptyheart.mp3" preload="auto"></audio>
+    <audio id="aFull"   src="static/fullheart.mp3" preload="auto"></audio>
+    <audio id="aCount"  src="static/count.mp3" preload="auto"></audio>
+
   </div>
+</div>
 
-  <script>
-    /**************************************************************
-     * ✅ "속도감"을 위해 10:00:00 (분:초:센티초) 표시
-     * - 센티초 = 1/100초
-     * - tick은 requestAnimationFrame 기반(부드럽게 감소)
-     **************************************************************/
-    const TOTAL_MS = 10 * 60 * 1000; // 10분
-    let remainingMs = TOTAL_MS;
+<script>
+/* 모바일 한 화면 스케일 */
+function fitStage(){
+  const stage = document.getElementById('stage');
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const baseW = 1100;
+  const baseH = stage.scrollHeight;
+  const s = Math.min(1, vw/baseW, vh/baseH);
+  stage.style.transform = `scale(${s})`;
+  stage.style.transformOrigin = 'top center';
+}
+window.addEventListener('load', fitStage);
+window.addEventListener('resize', fitStage);
 
-    let running = false;
-    let rafId = null;
-    let lastTs = 0;
-
-    const timeEl = document.getElementById('time');
-    const fillEl = document.getElementById('fill');
-    const trackEl = document.getElementById('track');
-    const manEl  = document.getElementById('man');
-    const logListEl = document.getElementById('logList');
-    const alarmEl = document.getElementById('alarm');
-
-    function formatTimeMMSSCC(ms){
-      ms = Math.max(0, ms);
-
-      const totalSec = Math.floor(ms / 1000);
-      const m = Math.floor(totalSec / 60);
-      const s = totalSec % 60;
-
-      // 센티초(00~99)
-      const centi = Math.floor((ms % 1000) / 10);
-
-      return (
-        String(m).padStart(2,'0') + ":" +
-        String(s).padStart(2,'0') + ":" +
-        String(centi).padStart(2,'0')
-      );
-    }
-
-    function updateUI(){
-      // 마지막 10초 빨간색
-      if(remainingMs <= 10000 && remainingMs > 0) timeEl.classList.add('red');
-      else timeEl.classList.remove('red');
-
-      timeEl.textContent = formatTimeMMSSCC(remainingMs);
-
-      // 진행률
-      const progressed = (TOTAL_MS - remainingMs) / TOTAL_MS;
-      const pct = Math.max(0, Math.min(1, progressed));
-
-      fillEl.style.width = (pct * 100) + "%";
-
-      // man 이동: fill 끝을 따라감
-      const trackW = trackEl.clientWidth;
-      const manW = manEl.getBoundingClientRect().width || 42;
-
-      const x = trackW * pct;
-      const leftPx = x - (manW / 2);
-      manEl.style.left = leftPx + "px";
-    }
-
-    function stopTimer(){
-      running = false;
-      if(rafId) cancelAnimationFrame(rafId);
-      rafId = null;
-      lastTs = 0;
-    }
-
-    function loop(ts){
-      if(!running) return;
-
-      if(!lastTs) lastTs = ts;
-      const dt = ts - lastTs;   // 지난 프레임 시간(ms)
-      lastTs = ts;
-
-      remainingMs -= dt;
-
-      if(remainingMs <= 0){
-        remainingMs = 0;
-        updateUI();
-        stopTimer();
-
-        // ✅ 알람 재생 (확실)
-        try{
-          alarmEl.pause();
-          alarmEl.currentTime = 0;
-          alarmEl.play();
-        }catch(e){
-          console.log("알람 재생 실패:", e);
-        }
-        return;
-      }
-
-
-      updateUI();
-      rafId = requestAnimationFrame(loop);
-    }
-
-    function startTimer(){
-
+/* 오디오 언락 */
+let audioUnlocked = false;
+const audios = {
+  alarm:  document.getElementById('aAlarm'),
+  change: document.getElementById('aChange'),
+  day:    document.getElementById('aDay'),
+  night:  document.getElementById('aNight'),
+  empty:  document.getElementById('aEmpty'),
+  full:   document.getElementById('aFull'),
+  count:  document.getElementById('aCount'),
+};
+async function playSound(a){
+  try{
+    a.pause();
+    try{ a.currentTime = 0; }catch(e){}
+    const p = a.play();
+    if(p && p.catch) await p.catch(()=>{});
+  }catch(e){}
+}
+function unlockAudioOnce(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  Object.values(audios).forEach(a=>{
     try{
-      alarmEl.muted = true;
-      alarmEl.play();
-      alarmEl.pause();
-      alarmEl.currentTime = 0;
-      alarmEl.muted = false;
+      a.muted = true;
+      a.play().then(()=>{
+        a.pause(); a.currentTime = 0; a.muted = false;
+      }).catch(()=>{ a.muted = false; });
     }catch(e){}
+  });
+}
+window.addEventListener('touchstart', unlockAudioOnce, { once:true, passive:true });
+window.addEventListener('mousedown', unlockAudioOnce, { once:true });
 
-      if(running) return;
-      if(remainingMs <= 0) return;
+function playChangeThen(nextKey){
+  const ch = audios.change;
+  ch.onended = null;
+  ch.onended = () => playSound(audios[nextKey]);
+  playSound(ch);
+}
 
-      running = true;
-      updateUI();
-      rafId = requestAnimationFrame(loop);
+/* DOM */
+const mainTimerEl = document.getElementById('mainTimer');
+const heartsEl = document.getElementById('hearts');
+
+const nightClockEl = document.getElementById('nightClock');
+const dayClockEl   = document.getElementById('dayClock');
+
+const hungerFillEl = document.getElementById('hungerFill');
+const failImgEl    = document.getElementById('failImg');
+
+const killBoxEl = document.getElementById('killBox');
+const deathBoxEl = document.getElementById('deathBox');
+const killScoreBoxEl = document.getElementById('killScoreBox');
+
+/* 상태 */
+const MAIN_TOTAL_MS = 20 * 60 * 1000;
+const PHASE_MS = 2 * 60 * 1000;
+const HUNGER_MS = 30 * 1000;
+
+let running = false;
+let paused  = true;
+let speedMul = 1;   // 1=정속, 10=빨리감기
+let lastTs = performance.now();
+
+let mainLeftMs  = MAIN_TOTAL_MS;
+
+let phase = 'NIGHT';     // 시작하면 밤
+let phaseLeftMs = PHASE_MS;
+
+let hungerLeftMs = HUNGER_MS; // 허기짐은 낮에서만 진행
+
+let failHideAt = 0;
+
+/* 생명력(칸 확장 포함) */
+let heartsMax = 10;
+let heartsFilled = 10;
+
+/* 점수 */
+let deathScore = 0;
+let killScore = 0;
+
+/* 전부 빈 하트 -> 1초 후 풀충전(확장된 칸 포함) */
+let allEmptyTriggered = false;
+let refillAt = 0;
+
+/* 포맷 */
+function pad2(n){ return String(n).padStart(2,'0'); }
+function fmtMain(ms){
+  ms = Math.max(0, ms);
+  const totalCs = Math.floor(ms / 10);
+  const cs = totalCs % 100;
+  const totalS = Math.floor(totalCs / 100);
+  const s  = totalS % 60;
+  const m  = Math.floor(totalS / 60);
+  return `${pad2(m)}:${pad2(s)}:${pad2(cs)}`;
+}
+function fmtPhase(ms){
+  ms = Math.max(0, ms);
+  const totalS = Math.ceil(ms/1000);
+  const s = totalS % 60;
+  const m = Math.floor(totalS/60);
+  return `${pad2(m)}:${pad2(s)}`;
+}
+
+/* 테마 */
+function applyTheme(){
+  document.body.classList.toggle('mode-night', phase === 'NIGHT');
+  document.body.classList.toggle('mode-day', phase === 'DAY');
+}
+
+/* 하트/점수 렌더 */
+function renderHearts(){
+  heartsEl.textContent = '♥'.repeat(heartsFilled) + '♡'.repeat(heartsMax - heartsFilled);
+}
+function updateScoresUI(){
+  deathBoxEl.textContent = String(deathScore);
+  killScoreBoxEl.textContent = String(killScore);
+}
+
+/* 공통 하트 변화 */
+function loseHeart(){
+  if(heartsFilled > 0) heartsFilled--;
+  renderHearts();
+
+  // 전부 빈 순간 DEATH +1, 1초 후 풀충전(확장된 칸 포함)
+  if(heartsFilled === 0 && !allEmptyTriggered){
+    allEmptyTriggered = true;
+    deathScore++;
+    updateScoresUI();
+    refillAt = performance.now() + 1000;
+  }
+}
+function gainHeart(){
+  if(heartsFilled < heartsMax) heartsFilled++;
+  renderHearts();
+}
+
+/* ✅ 생명력 구역 버튼 */
+function lifeMinus(){
+  unlockAudioOnce();
+  loseHeart();
+}
+function lifePlus(){
+  unlockAudioOnce();
+
+  // 꽉 찬 상태면 칸을 1개 "추가"하고 그 칸을 채움
+  if(heartsFilled >= heartsMax){
+    heartsMax += 1;
+    heartsFilled += 1;
+    renderHearts();
+    return;
+  }
+
+  // 아니면 그냥 한 칸 채움
+  gainHeart();
+}
+
+/* 밤: 공격 실패/처치 */
+function nightFail(){
+  unlockAudioOnce();
+
+  failImgEl.style.display = 'block';
+  failHideAt = performance.now() + 3000;
+
+  playSound(audios.empty);
+  loseHeart();
+}
+function killAdd(delta){
+  unlockAudioOnce();
+  killScore = Math.max(0, killScore + delta);
+  killBoxEl.textContent = String(killScore);
+  updateScoresUI();
+  if(delta > 0) playSound(audios.count);
+}
+
+/* 낮: 허기짐 */
+function renderHunger(){
+  const p = 1 - (hungerLeftMs / HUNGER_MS);
+  hungerFillEl.style.height = `${Math.max(0, Math.min(1,p))*100}%`;
+}
+function daySuccess(){
+  unlockAudioOnce();
+
+  // ✅ 낮의 성공 버튼은 누를 때마다 fullheart.mp3 (낮/밤 언제든)
+  playSound(audios.full);
+
+  // 성공은 칸 증가 X (요청)
+  if(heartsFilled < heartsMax) gainHeart();
+
+  hungerLeftMs = HUNGER_MS;
+  renderHunger();
+}
+
+/* 페이즈 전환 */
+function switchPhase(){
+  if(phase === 'NIGHT'){
+    phase = 'DAY';
+    phaseLeftMs = PHASE_MS;
+    applyTheme();
+    playChangeThen('day');
+  }else{
+    phase = 'NIGHT';
+    phaseLeftMs = PHASE_MS;
+    applyTheme();
+    playChangeThen('night');
+  }
+}
+
+/* UI */
+function uiStart(){
+  unlockAudioOnce();
+  running = true;
+  paused = false;
+
+  phase = 'NIGHT';
+  phaseLeftMs = PHASE_MS;
+  applyTheme();
+}
+function uiToggle(){
+  unlockAudioOnce();
+  if(!running) return;
+  paused = !paused;
+
+  // 다시 재생하면 정속
+  if(!paused) speedMul = 1;
+}
+function uiFast(){
+  unlockAudioOnce();
+  if(!running) return;
+  paused = false;
+  speedMul = 10;
+}
+function uiReset(){
+  running = false;
+  paused = true;
+  speedMul = 1;
+
+  mainLeftMs = MAIN_TOTAL_MS;
+
+  phase = 'NIGHT';
+  phaseLeftMs = PHASE_MS;
+  applyTheme();
+
+  hungerLeftMs = HUNGER_MS;
+  renderHunger();
+
+  heartsMax = 10;
+  heartsFilled = 10;
+  renderHearts();
+
+  deathScore = 0;
+  killScore = 0;
+  killBoxEl.textContent = '0';
+  updateScoresUI();
+
+  allEmptyTriggered = false;
+  refillAt = 0;
+
+  failImgEl.style.display = 'none';
+  failHideAt = 0;
+
+  renderTimers();
+}
+
+/* 타이머 렌더 */
+function renderTimers(){
+  mainTimerEl.textContent = fmtMain(mainLeftMs);
+  mainTimerEl.classList.toggle('last10', mainLeftMs <= 10000);
+
+  nightClockEl.textContent = fmtPhase(phase === 'NIGHT' ? phaseLeftMs : PHASE_MS);
+  dayClockEl.textContent   = fmtPhase(phase === 'DAY'   ? phaseLeftMs : PHASE_MS);
+}
+
+/* 종료 */
+function endMain(){
+  running = false;
+  paused = true;
+  speedMul = 1;
+  playSound(audios.alarm);
+}
+
+/* 루프 */
+function loop(ts){
+  const rawDt = Math.min(0.05, (ts - lastTs) / 1000);
+  lastTs = ts;
+
+  if(failHideAt && ts >= failHideAt){
+    failHideAt = 0;
+    failImgEl.style.display = 'none';
+  }
+
+  // 전부 빈 하트 -> 1초 뒤 풀충전(확장된 칸 포함)
+  if(refillAt && ts >= refillAt){
+    refillAt = 0;
+    heartsFilled = heartsMax;      // ✅ 확장된 칸 포함 풀충전
+    renderHearts();
+    allEmptyTriggered = false;
+  }
+
+  if(running && !paused){
+    const dt = rawDt * speedMul;
+
+    mainLeftMs -= dt * 1000;
+    if(mainLeftMs <= 0){
+      mainLeftMs = 0;
+      renderTimers();
+      endMain();
+      requestAnimationFrame(loop);
+      return;
     }
 
-    function toggleTimer(){
-      if(running) stopTimer();
-      else startTimer();
+    phaseLeftMs -= dt * 1000;
+    if(phaseLeftMs <= 0){
+      phaseLeftMs = 0;
+      renderTimers();
+      switchPhase();
     }
 
-    function resetAll(){
-      stopTimer();
-      remainingMs = TOTAL_MS;
-      logListEl.innerHTML = "";
-      try{
-        alarmEl.pause();
-        alarmEl.currentTime = 0;
-      }catch(e){}
-      updateUI();
+    // 허기짐은 낮일 때만 흐름
+    if(phase === 'DAY'){
+      hungerLeftMs -= dt * 1000;
+      if(hungerLeftMs <= 0){
+        hungerLeftMs = HUNGER_MS;
+        playSound(audios.empty);   // ✅ 허기짐 만땅=emptyheart
+        loseHeart();
+      }
+      renderHunger();
     }
+  }
 
-    function addLogRow(){
-      const row = document.createElement("div");
-      row.className = "logRow";
+  renderTimers();
+  requestAnimationFrame(loop);
+}
 
-      const stamp = document.createElement("div");
-      stamp.className = "stamp";
-      stamp.textContent = `[${formatTimeMMSSCC(remainingMs)}]`;
+/* 초기화 */
+(function init(){
+  failImgEl.style.display = 'none';
+  phase = 'NIGHT';
+  applyTheme();
 
-      const input = document.createElement("input");
-      input.className = "logInput";
-      input.placeholder = "메모 입력";
+  renderHearts();
+  updateScoresUI();
+  renderHunger();
+  renderTimers();
 
-      row.appendChild(stamp);
-      row.appendChild(input);
-      logListEl.appendChild(row);
-
-      input.focus();
-    }
-
-    function show(pageId){
-      if(pageId === 'page-start') startTimer();
-      if(pageId === 'page-toggle') toggleTimer();
-      if(pageId === 'page-log') addLogRow();
-      if(pageId === 'page-reset') resetAll();
-    }
-
-    // 초기 표시: 10:00:00, man은 왼쪽
-    updateUI();
-    window.addEventListener('resize', updateUI);
-  </script>
+  fitStage();
+  requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>
