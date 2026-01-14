@@ -3,725 +3,696 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>20:00 - NIGHT/DAY</title>
+<title>Night/Day Cycle</title>
 
 <style>
-  html,body{
+  :root{
+    /* ✅ “기준 폭” */
+    --baseW: 1100;
+
+    --cardBg: rgba(255,255,255,0.70);
+    --border: #111;
+
+    /* ✅ duty 이미지 크기(줄임) */
+    --dutyW: 520px;   /* ✅ 더 작게 */
+    --dutyH: auto;
+    --dutyMaxH: 90px; /* ✅ 너무 큰 이미지여도 이 높이 안에서 축소 */
+
+    /* ✅ 카드 전체를 현재의 80%로 */
+    --cardScale: 0.8;
+  }
+
+  html, body{
     margin:0;
-    width:100%;
     height:100%;
     overflow:hidden;
+    touch-action:none;
     overscroll-behavior:none;
-    touch-action:manipulation;
+    background:#000;
     font-family: Arial, Helvetica, sans-serif;
+    color:#111;
   }
 
-  body.mode-night{ background:#000; color:#fff; }
-  body.mode-day{   background:#fff; color:#111; }
+  /* 배경(밤/낮) */
+  #bg{
+    position:fixed;
+    inset:0;
+    background:center/cover no-repeat;
+    z-index:0;
+  }
 
-  .wrap{
-    width:100%;
-    height:100%;
+  /* 화면 정가운데 */
+  #stageWrap{
+    position:fixed;
+    inset:0;
     display:flex;
-    justify-content:center;
-    align-items:flex-start;
-    text-align:center;
-  }
-
-  #stage{
-    width:1100px;
-    transform-origin: top center;
-  }
-
-  .box{
-    border:2px solid currentColor;
-    box-sizing:border-box;
-    background:transparent;
-  }
-  .row{
-    width:1024px;
-    max-width:92vw;
-    margin:12px auto 0;
-    box-sizing:border-box;
-  }
-
-  /* 1구역 */
-  .topBar{
-    display:grid;
-    grid-template-columns: 1fr auto;
-    gap:10px;
     align-items:center;
-    padding:10px;
+    justify-content:center;
+    z-index:1;
+    pointer-events:none;
   }
-  .bigTimer{
-    font-family: ui-monospace, monospace;
-    font-size:54px;
-    font-weight:900;
-    letter-spacing:1px;
-  }
-  .bigTimer.last10{ color:#ff2d2d; }
 
+  /* ✅ Stage는 fitStage()가 스케일을 잡고,
+        내부 content는 --cardScale로 한 번 더 0.8 축소 */
+  #stage{
+    width:calc(var(--baseW) * 1px);
+    transform-origin:center center;
+    pointer-events:auto;
+  }
+  #stageInner{
+    transform: scale(var(--cardScale));
+    transform-origin:center center;
+  }
+
+  .view{
+    width:100%;
+    display:none;
+    box-sizing:border-box;
+    padding:22px;
+  }
+  .view.active{ display:block; }
+
+  .panel{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .card{
+    width:100%;
+    background:var(--cardBg);
+    border:2px solid var(--border);
+    padding:14px;
+    box-sizing:border-box;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .topTitle{
+    font-weight:900;
+    font-size:26px;
+    letter-spacing:0.3px;
+    text-align:center;
+    flex:1;
+  }
   .btnRow{
     display:flex;
     gap:8px;
-    align-items:center;
-    justify-content:flex-end;
     flex-wrap:nowrap;
   }
   button{
-    border:2px solid currentColor;
-    background:transparent;
-    color:inherit;
+    border:2px solid var(--border);
+    background:#fff;
     padding:10px 12px;
-    font-weight:800;
     font-size:14px;
+    font-weight:800;
     cursor:pointer;
     user-select:none;
     -webkit-user-select:none;
+    touch-action:manipulation;
+    white-space:nowrap;
   }
   button:active{ transform: translateY(1px); }
 
-  /* 2구역(생명력 + 하트조절 버튼) */
-  .lifeBar{
-    padding:10px;
-    display:grid;
-    grid-template-columns: 1fr auto;
-    gap:10px;
-    align-items:center;
-  }
-  .lifeCenter{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:14px;
-    min-width:0;
-  }
-  .lifeLabel{
-    font-size:34px;
-    font-weight:900;
-    white-space:nowrap;
-  }
-  #hearts{
-    font-size:34px;
-    letter-spacing:4px;
-    font-weight:900;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .lifeBtns{
-    display:flex;
-    gap:8px;
-    align-items:center;
-    justify-content:flex-end;
-    white-space:nowrap;
-  }
-
-  /* 3+4구역 */
-  .twoCol{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:10px;
-  }
-  .panel{
-    padding:10px;
-    min-height:440px;
+  /* =========================
+     화면1: 피라미드 2 + 3
+     ========================= */
+  .zPyramid{
+    width:100%;
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:flex-start;
-    gap:10px;
-  }
-
-  .panelHead{
-    width:100%;
-    display:flex;
     justify-content:center;
-    align-items:baseline;
     gap:14px;
+    padding:6px 0;
+    box-sizing:border-box;
   }
-  .panelTitle{
-    font-size:34px;
-    font-weight:900;
-  }
-  .panelClock{
-    font-family: ui-monospace, monospace;
-    font-size:34px;
-    font-weight:900;
-  }
-
-  /* 밤 내용(공격 실패/처치) */
-  .card16x9{
-    width:92%;
-    aspect-ratio: 16/9;
-    border:2px solid currentColor;
-    position:relative;
+  .zRow{
     display:flex;
     justify-content:center;
-    align-items:center;
-    overflow:hidden;
+    gap:14px;
+    width:100%;
   }
-  .card16x9 img{
+  .zRow.top{ max-width: 760px; }
+  .zRow.bottom{ max-width: 980px; }
+
+  .slot{
+    flex:1 1 0;
+    max-width: 310px;
+    aspect-ratio: 1 / 1;
+    border:2px solid var(--border);
+    background:#fff;
+    overflow:hidden;
+    position:relative;
+  }
+  .slot img{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    pointer-events:none;
+    user-select:none;
+  }
+
+  /* kill.png가 박스 전체 덮기 */
+  .overlayMark{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+  .overlayMark img{
     width:100%;
     height:100%;
     object-fit:contain;
-    display:none;
   }
+  .slot.killed .overlayMark{ display:flex; }
 
-  .killLine{
-    margin-top:6px;
-    font-size:18px;
-    font-weight:900;
+  /* =========================
+     duty 이미지
+     ========================= */
+  .dutyCard{
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:10px;
-    flex-wrap:wrap;
+    padding:10px;
   }
-  .killBox{
-    width:70px;
-    height:38px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border:2px solid currentColor;
-    font-family: ui-monospace, monospace;
-    font-size:20px;
-    font-weight:900;
+  .dutyImg{
+    width:var(--dutyW);
+    height:var(--dutyH);
+    max-width:100%;
+    max-height:var(--dutyMaxH);
+    object-fit:contain;
+    user-select:none;
+    pointer-events:none;
+    display:block;
   }
 
-  /* 낮 내용(허기짐) */
-  .hungerWrap{
-    width:92%;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:8px;
-  }
-  .hungerLabel{
-    font-size:18px;
-    font-weight:900;
-  }
-  .hungerBar{
-    width:52px;
-    height:220px;
-    border:2px solid currentColor;
-    position:relative;
-    overflow:hidden;
-  }
-  .hungerFill{
-    position:absolute;
-    left:0;
-    bottom:0;
+  /* =========================
+     화면3: 미션 3개 (3:4)
+     ========================= */
+  .mGrid{
     width:100%;
-    height:0%;
-    background: currentColor;
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:12px;
+    align-items:center;
+    justify-items:center;
   }
-  .desc{
-    width:92%;
-    font-size:13px;
-    line-height:1.35;
-    opacity:0.9;
+  .mGrid .mSlot{
+    width:100%;
+    max-width:320px;
+    aspect-ratio: 3 / 4;
+    border:2px solid var(--border);
+    background:#fff;
+    overflow:hidden;
+    position:relative;
+  }
+  .mGrid .mSlot img{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    pointer-events:none;
+    user-select:none;
+  }
+  .mSlot.cleared .overlayMark{ display:flex; }
+
+  /* =========================
+     화면2/4: 16:9 비디오 카드
+     ========================= */
+  .videoCard{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:10px;
+  }
+  .videoFrame{
+    width:100%;
+    max-width: 980px;
+    aspect-ratio: 16 / 9;
+    border:2px solid var(--border);
+    background:#000;
+    overflow:hidden;
+    position:relative;
+  }
+  video{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    background:#000;
   }
 
-  /* 5구역 결과 */
-  .resultBar{
-    padding:12px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-  }
-  .resultLabel{
-    font-size:20px;
-    font-weight:900;
-  }
-  .scoreBox{
-    min-width:62px;
-    height:34px;
-    border:2px solid currentColor;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family: ui-monospace, monospace;
-    font-size:18px;
-    font-weight:900;
-    padding:0 8px;
-  }
-
-  @media (max-width: 820px){
-    .twoCol{ grid-template-columns: 1fr; }
-    #stage{ width: 980px; }
+  .hint{
+    font-size:12px;
+    opacity:0.7;
+    text-align:left;
+    width:100%;
   }
 </style>
 </head>
 
-<body class="mode-night">
-<div class="wrap">
-  <div id="stage">
+<body>
+  <div id="bg"></div>
 
-    <!-- 1구역 -->
-    <div class="row box topBar">
-      <div id="mainTimer" class="bigTimer">20:00:00</div>
-      <div class="btnRow">
-        <button onclick="uiStart()">시작</button>
-        <button onclick="uiToggle()">▶/Ⅱ</button>
-        <button onclick="uiFast()">빨리감기×10</button>
-        <button onclick="uiReset()">리셋</button>
-      </div>
-    </div>
+  <div id="stageWrap">
+    <div id="stage">
+      <div id="stageInner">
 
-    <!-- 2구역 -->
-    <div class="row box lifeBar">
-      <div class="lifeCenter">
-        <div class="lifeLabel">생명력</div>
-        <div id="hearts">♥♥♥♥♥♥♥♥♥♥</div>
-      </div>
-      <div class="lifeBtns">
-        <button onclick="lifeMinus()">♥-1</button>
-        <button onclick="lifePlus()">♥+1</button>
-      </div>
-    </div>
+        <!-- 화면 1 (밤) -->
+        <section id="view1" class="view active" aria-label="night screen">
+          <div class="panel">
+            <div class="card topbar">
+              <div class="topTitle" id="titleNight">day 1 ㅣ 밤 🌙</div>
+              <div class="btnRow">
+                <button id="dayMinus1">-1일</button>
+                <button id="dayPlus1">+1일</button>
+                <button id="dayReset1">리셋</button>
+              </div>
+            </div>
 
-    <!-- 3+4구역 -->
-    <div class="row twoCol">
+            <div class="card dutyCard">
+              <img id="dutyImg" class="dutyImg" alt="">
+            </div>
 
-      <!-- 왼쪽: 밤(공격 실패/처치) -->
-      <div class="box panel" id="nightPanel">
-        <div class="panelHead">
-          <div class="panelTitle">밤</div>
-          <div id="nightClock" class="panelClock">02:00</div>
-        </div>
+            <div class="card">
+              <div class="zPyramid" id="zGrid">
+                <div class="zRow top">
+                  <div class="slot" data-i="0">
+                    <img src="static/zombie.png" alt="">
+                    <div class="overlayMark"><img src="static/kill.png" alt=""></div>
+                  </div>
+                  <div class="slot" data-i="1">
+                    <img src="static/zombie.png" alt="">
+                    <div class="overlayMark"><img src="static/kill.png" alt=""></div>
+                  </div>
+                </div>
 
-        <div class="card16x9">
-          <img id="failImg" src="static/fail.png" alt="fail">
-        </div>
+                <div class="zRow bottom">
+                  <div class="slot" data-i="2">
+                    <img src="static/zombie.png" alt="">
+                    <div class="overlayMark"><img src="static/kill.png" alt=""></div>
+                  </div>
+                  <div class="slot" data-i="3">
+                    <img src="static/zombie.png" alt="">
+                    <div class="overlayMark"><img src="static/kill.png" alt=""></div>
+                  </div>
+                  <div class="slot" data-i="4">
+                    <img src="static/zombie.png" alt="">
+                    <div class="overlayMark"><img src="static/kill.png" alt=""></div>
+                  </div>
+                </div>
+              </div>
 
-        <button onclick="nightFail()">공격 실패</button>
-
-        <div class="killLine">
-          좀비 처치 누적 횟수
-          <span class="killBox" id="killBox">0</span>
-          마리
-        </div>
-
-        <div style="display:flex; gap:10px; align-items:center;">
-          <button onclick="killAdd(1)">성공</button>
-          <button onclick="killAdd(-1)">-1</button>
-        </div>
-      </div>
-
-      <!-- 오른쪽: 낮(허기짐) -->
-      <div class="box panel" id="dayPanel">
-        <div class="panelHead">
-          <div class="panelTitle">낮</div>
-          <div id="dayClock" class="panelClock">02:00</div>
-        </div>
-
-        <div class="hungerWrap">
-          <div class="hungerLabel">허기짐</div>
-          <div class="hungerBar">
-            <div id="hungerFill" class="hungerFill"></div>
+              <div class="hint">* 5개 전부 kill → change.mp3 → clearzombie.mp3 → 화면2</div>
+            </div>
           </div>
+        </section>
 
-          <button onclick="daySuccess()">성공</button>
-
-          <div class="desc">
-            1) 허기짐 게이지는 30초에 가득 차요(낮에만 진행).<br>
-            2) 다 차면 생명력 ♥가 오른쪽부터 1개 줄어요.<br>
-            3) “성공”은 하트를 채우고 게이지를 리셋해요(칸 증가는 안 함).<br>
-            4) 생명력 구역의 ♥+1만 “칸 증가(추가 하트 생성)”가 가능해요.
+        <!-- 화면 2 (nighttoday.mp4 + day.mp3) -->
+        <section id="view2" class="view" aria-label="transition screen">
+          <div class="panel">
+            <div class="card videoCard">
+              <div class="videoFrame">
+                <video id="nightVideo" playsinline webkit-playsinline preload="auto">
+                  <source src="static/nighttoday.mp4" type="video/mp4">
+                </video>
+              </div>
+            </div>
+            <div class="hint">* 영상 + day.mp3 동시에 → 영상 끝나면 1초 후 화면3</div>
           </div>
-        </div>
+        </section>
+
+        <!-- 화면 3 (낮) -->
+        <section id="view3" class="view" aria-label="day screen">
+          <div class="panel">
+            <div class="card topbar">
+              <div class="topTitle" id="titleDay">day 1 ㅣ 낮 ☀️</div>
+              <div class="btnRow">
+                <button id="dayMinus3">-1일</button>
+                <button id="dayPlus3">+1일</button>
+                <button id="dayReset3">리셋</button>
+              </div>
+            </div>
+
+            <div class="card dutyCard">
+              <img id="dutyImgDay" class="dutyImg" alt="">
+            </div>
+
+            <div class="card">
+              <div class="mGrid" id="mGrid">
+                <div class="mSlot" data-i="0">
+                  <img src="static/mission1.png" alt="">
+                  <div class="overlayMark"><img src="static/clear.png" alt=""></div>
+                </div>
+                <div class="mSlot" data-i="1">
+                  <img src="static/mission2.png" alt="">
+                  <div class="overlayMark"><img src="static/clear.png" alt=""></div>
+                </div>
+                <div class="mSlot" data-i="2">
+                  <img src="static/mission3.png" alt="">
+                  <div class="overlayMark"><img src="static/clear.png" alt=""></div>
+                </div>
+              </div>
+
+              <div class="hint">* 3개 전부 clear → change.mp3 → clearmission.mp3 → 화면4(전환)</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ 화면 4 (daytonight.mp4 + night.mp3) -->
+        <section id="view4" class="view" aria-label="day-to-night transition screen">
+          <div class="panel">
+            <div class="card videoCard">
+              <div class="videoFrame">
+                <video id="dayToNightVideo" playsinline webkit-playsinline preload="auto">
+                  <source src="static/daytonight.mp4" type="video/mp4">
+                </video>
+              </div>
+            </div>
+            <div class="hint">* daytonight.mp4 + night.mp3 동시에 → 영상 끝나면 1초 후 화면1</div>
+          </div>
+        </section>
+
       </div>
     </div>
-
-    <!-- 5구역 -->
-    <div class="row box resultBar">
-      <div class="resultLabel">결과:</div>
-      <div class="scoreBox" id="deathBox">0</div>
-      <div class="resultLabel">DEATH</div>
-      <div class="scoreBox" id="killScoreBox">0</div>
-      <div class="resultLabel">KILL</div>
-    </div>
-
-    <!-- 오디오 -->
-    <audio id="aAlarm"  src="static/alarm.mp3" preload="auto"></audio>
-    <audio id="aChange" src="static/change.mp3" preload="auto"></audio>
-    <audio id="aDay"    src="static/day.mp3" preload="auto"></audio>
-    <audio id="aNight"  src="static/night.mp3" preload="auto"></audio>
-
-    <audio id="aEmpty"  src="static/emptyheart.mp3" preload="auto"></audio>
-    <audio id="aFull"   src="static/fullheart.mp3" preload="auto"></audio>
-    <audio id="aCount"  src="static/count.mp3" preload="auto"></audio>
-
   </div>
-</div>
 
 <script>
-/* 모바일 한 화면 스케일 */
+/* ✅ 스크롤 완전 방지 */
+document.addEventListener('touchmove', (e)=> e.preventDefault(), {passive:false});
+
+/* =========================================================
+   ✅ Stage 자동 확대/축소
+   (중요) stageInner에 scale(0.8)이 들어가 있으므로
+          높이 측정은 stageInner 기준으로 해야 "카드가 진짜로 80%"가 됨
+   ========================================================= */
 function fitStage(){
   const stage = document.getElementById('stage');
+  const inner = document.getElementById('stageInner');
+  const baseW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--baseW')) || 1100;
+
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const baseW = 1100;
-  const baseH = stage.scrollHeight;
-  const s = Math.min(1, vw/baseW, vh/baseH);
-  stage.style.transform = `scale(${s})`;
-  stage.style.transformOrigin = 'top center';
-}
-window.addEventListener('load', fitStage);
-window.addEventListener('resize', fitStage);
 
-/* 오디오 언락 */
-let audioUnlocked = false;
-const audios = {
-  alarm:  document.getElementById('aAlarm'),
-  change: document.getElementById('aChange'),
-  day:    document.getElementById('aDay'),
-  night:  document.getElementById('aNight'),
-  empty:  document.getElementById('aEmpty'),
-  full:   document.getElementById('aFull'),
-  count:  document.getElementById('aCount'),
-};
-async function playSound(a){
+  stage.style.transform = 'scale(1)';
+
+  // inner가 0.8로 줄어든 최종 높이를 기준으로 맞춤
+  const baseH = (inner ? inner.scrollHeight : stage.scrollHeight) || 1;
+
+  const s = Math.min(vw / baseW, vh / baseH);
+  stage.style.transform = `scale(${s})`;
+  stage.style.transformOrigin = 'center center';
+}
+window.addEventListener('load', ()=> requestAnimationFrame(fitStage));
+window.addEventListener('resize', ()=> requestAnimationFrame(fitStage));
+
+/* =========================================================
+   오디오 유틸
+   ========================================================= */
+function playSound(audioEl, src){
   try{
-    a.pause();
-    try{ a.currentTime = 0; }catch(e){}
-    const p = a.play();
-    if(p && p.catch) await p.catch(()=>{});
+    if(src) audioEl.src = src;
+    audioEl.pause();
+    audioEl.currentTime = 0;
+    const p = audioEl.play();
+    if(p && p.catch) p.catch(()=>{});
   }catch(e){}
 }
-function unlockAudioOnce(){
-  if(audioUnlocked) return;
-  audioUnlocked = true;
-  Object.values(audios).forEach(a=>{
-    try{
-      a.muted = true;
-      a.play().then(()=>{
-        a.pause(); a.currentTime = 0; a.muted = false;
-      }).catch(()=>{ a.muted = false; });
-    }catch(e){}
+async function playSequence(list){
+  for(const it of list){
+    await new Promise((resolve)=>{
+      const el = it.el;
+      el.onended = ()=> resolve();
+      el.onerror = ()=> resolve();
+      playSound(el, it.src);
+    });
+  }
+}
+
+/* =========================================================
+   상태(day 유지)
+   ========================================================= */
+let dayNum = 1;
+function clampDay(){ if(!Number.isFinite(dayNum)) dayNum=1; if(dayNum<0) dayNum=0; }
+function updateTitles(){
+  clampDay();
+  document.getElementById('titleNight').textContent = `day ${dayNum} ㅣ 밤 🌙`;
+  document.getElementById('titleDay').textContent   = `day ${dayNum} ㅣ 낮 ☀️`;
+}
+
+/* =========================================================
+   배경(밤/낮) + duty 이미지
+   ========================================================= */
+const bgEl = document.getElementById('bg');
+const dutyNightEl = document.getElementById('dutyImg');
+const dutyDayEl   = document.getElementById('dutyImgDay');
+
+function setModeAssets(mode){
+  bgEl.style.backgroundImage = (mode === "DAY")
+    ? 'url("static/background-day.png")'
+    : 'url("static/background-night.png")';
+
+  if(dutyNightEl) dutyNightEl.src = "static/duty-night.png";
+  if(dutyDayEl)   dutyDayEl.src   = "static/duty-day.png";
+}
+
+/* =========================================================
+   화면 전환
+   ========================================================= */
+const view1 = document.getElementById('view1');
+const view2 = document.getElementById('view2');
+const view3 = document.getElementById('view3');
+const view4 = document.getElementById('view4');
+
+function showView(n){
+  [view1,view2,view3,view4].forEach(v=> v.classList.remove('active'));
+
+  if(n === 1){ view1.classList.add('active'); setModeAssets("NIGHT"); }
+  if(n === 2){ view2.classList.add('active'); setModeAssets("NIGHT"); }
+  if(n === 3){ view3.classList.add('active'); setModeAssets("DAY"); }
+  if(n === 4){ view4.classList.add('active'); setModeAssets("NIGHT"); } // 전환 영상은 밤으로 복귀 느낌
+
+  updateTitles();
+  requestAnimationFrame(fitStage);
+}
+
+/* day 버튼(화면1/3 공통) */
+function bindDayButtons(minusId, plusId, resetId){
+  document.getElementById(minusId).addEventListener('click', ()=>{
+    dayNum -= 1; clampDay(); updateTitles(); requestAnimationFrame(fitStage);
+  });
+  document.getElementById(plusId).addEventListener('click', ()=>{
+    dayNum += 1; 
+    warmUpAudio();
+    playSound(aFullHeart, "static/fullheart.mp3");
+    clampDay(); updateTitles(); requestAnimationFrame(fitStage);
+  });
+  document.getElementById(resetId).addEventListener('click', ()=>{
+    dayNum = 1; updateTitles(); requestAnimationFrame(fitStage);
   });
 }
-window.addEventListener('touchstart', unlockAudioOnce, { once:true, passive:true });
-window.addEventListener('mousedown', unlockAudioOnce, { once:true });
+bindDayButtons('dayMinus1','dayPlus1','dayReset1');
+bindDayButtons('dayMinus3','dayPlus3','dayReset3');
 
-function playChangeThen(nextKey){
-  const ch = audios.change;
-  ch.onended = null;
-  ch.onended = () => playSound(audios[nextKey]);
-  playSound(ch);
+/* =========================================================
+   오디오 엘리먼트
+   ========================================================= */
+const aChange = new Audio("static/change.mp3");
+const aClearZ = new Audio("static/clearzombie.mp3");
+const aDay    = new Audio("static/day.mp3");
+const aCM     = new Audio("static/clearmission.mp3");
+const aNight  = new Audio("static/night.mp3");        // ✅ 추가
+const aFullHeart = new Audio("static/fullheart.mp3");
+
+
+let audioReady = false;
+function warmUpAudio(){
+  if(audioReady) return;
+  [aChange, aClearZ, aDay, aCM, aNight, aFullHeart].forEach(el=>{
+    try{
+      el.muted = true;
+      const p = el.play();
+      if(p && p.catch) p.catch(()=>{});
+      el.pause(); el.currentTime = 0;
+      el.muted = false;
+    }catch(e){}
+  });
+  audioReady = true;
 }
 
-/* DOM */
-const mainTimerEl = document.getElementById('mainTimer');
-const heartsEl = document.getElementById('hearts');
-
-const nightClockEl = document.getElementById('nightClock');
-const dayClockEl   = document.getElementById('dayClock');
-
-const hungerFillEl = document.getElementById('hungerFill');
-const failImgEl    = document.getElementById('failImg');
-
-const killBoxEl = document.getElementById('killBox');
-const deathBoxEl = document.getElementById('deathBox');
-const killScoreBoxEl = document.getElementById('killScoreBox');
-
-/* 상태 */
-const MAIN_TOTAL_MS = 20 * 60 * 1000;
-const PHASE_MS = 2 * 60 * 1000;
-const HUNGER_MS = 30 * 1000;
-
-let running = false;
-let paused  = true;
-let speedMul = 1;   // 1=정속, 10=빨리감기
-let lastTs = performance.now();
-
-let mainLeftMs  = MAIN_TOTAL_MS;
-
-let phase = 'NIGHT';     // 시작하면 밤
-let phaseLeftMs = PHASE_MS;
-
-let hungerLeftMs = HUNGER_MS; // 허기짐은 낮에서만 진행
-
-let failHideAt = 0;
-
-/* 생명력(칸 확장 포함) */
-let heartsMax = 10;
-let heartsFilled = 10;
-
-/* 점수 */
-let deathScore = 0;
-let killScore = 0;
-
-/* 전부 빈 하트 -> 1초 후 풀충전(확장된 칸 포함) */
-let allEmptyTriggered = false;
-let refillAt = 0;
-
-/* 포맷 */
-function pad2(n){ return String(n).padStart(2,'0'); }
-function fmtMain(ms){
-  ms = Math.max(0, ms);
-  const totalCs = Math.floor(ms / 10);
-  const cs = totalCs % 100;
-  const totalS = Math.floor(totalCs / 100);
-  const s  = totalS % 60;
-  const m  = Math.floor(totalS / 60);
-  return `${pad2(m)}:${pad2(s)}:${pad2(cs)}`;
+/* =========================================================
+   화면1: 좀비 5개 토글
+   ========================================================= */
+let zLock = false;
+function checkAllZombieKilled(){
+  const slots = [...document.querySelectorAll('#zGrid .slot')];
+  return slots.every(s => s.classList.contains('killed'));
 }
-function fmtPhase(ms){
-  ms = Math.max(0, ms);
-  const totalS = Math.ceil(ms/1000);
-  const s = totalS % 60;
-  const m = Math.floor(totalS/60);
-  return `${pad2(m)}:${pad2(s)}`;
+function resetZombies(){
+  [...document.querySelectorAll('#zGrid .slot')].forEach(s=> s.classList.remove('killed'));
+  zLock = false;
 }
 
-/* 테마 */
-function applyTheme(){
-  document.body.classList.toggle('mode-night', phase === 'NIGHT');
-  document.body.classList.toggle('mode-day', phase === 'DAY');
-}
+document.querySelectorAll('#zGrid .slot').forEach(slot=>{
+  slot.addEventListener('click', async ()=>{
+    warmUpAudio();
+    if(zLock) return;
 
-/* 하트/점수 렌더 */
-function renderHearts(){
-  heartsEl.textContent = '♥'.repeat(heartsFilled) + '♡'.repeat(heartsMax - heartsFilled);
-}
-function updateScoresUI(){
-  deathBoxEl.textContent = String(deathScore);
-  killScoreBoxEl.textContent = String(killScore);
-}
+    slot.classList.toggle('killed');
 
-/* 공통 하트 변화 */
-function loseHeart(){
-  if(heartsFilled > 0) heartsFilled--;
-  renderHearts();
-
-  // 전부 빈 순간 DEATH +1, 1초 후 풀충전(확장된 칸 포함)
-  if(heartsFilled === 0 && !allEmptyTriggered){
-    allEmptyTriggered = true;
-    deathScore++;
-    updateScoresUI();
-    refillAt = performance.now() + 1000;
-  }
-}
-function gainHeart(){
-  if(heartsFilled < heartsMax) heartsFilled++;
-  renderHearts();
-}
-
-/* ✅ 생명력 구역 버튼 */
-function lifeMinus(){
-  unlockAudioOnce();
-  loseHeart();
-}
-function lifePlus(){
-  unlockAudioOnce();
-
-  // 꽉 찬 상태면 칸을 1개 "추가"하고 그 칸을 채움
-  if(heartsFilled >= heartsMax){
-    heartsMax += 1;
-    heartsFilled += 1;
-    renderHearts();
-    return;
-  }
-
-  // 아니면 그냥 한 칸 채움
-  gainHeart();
-}
-
-/* 밤: 공격 실패/처치 */
-function nightFail(){
-  unlockAudioOnce();
-
-  failImgEl.style.display = 'block';
-  failHideAt = performance.now() + 3000;
-
-  playSound(audios.empty);
-  loseHeart();
-}
-function killAdd(delta){
-  unlockAudioOnce();
-  killScore = Math.max(0, killScore + delta);
-  killBoxEl.textContent = String(killScore);
-  updateScoresUI();
-  if(delta > 0) playSound(audios.count);
-}
-
-/* 낮: 허기짐 */
-function renderHunger(){
-  const p = 1 - (hungerLeftMs / HUNGER_MS);
-  hungerFillEl.style.height = `${Math.max(0, Math.min(1,p))*100}%`;
-}
-function daySuccess(){
-  unlockAudioOnce();
-
-  // ✅ 낮의 성공 버튼은 누를 때마다 fullheart.mp3 (낮/밤 언제든)
-  playSound(audios.full);
-
-  // 성공은 칸 증가 X (요청)
-  if(heartsFilled < heartsMax) gainHeart();
-
-  hungerLeftMs = HUNGER_MS;
-  renderHunger();
-}
-
-/* 페이즈 전환 */
-function switchPhase(){
-  if(phase === 'NIGHT'){
-    phase = 'DAY';
-    phaseLeftMs = PHASE_MS;
-    applyTheme();
-    playChangeThen('day');
-  }else{
-    phase = 'NIGHT';
-    phaseLeftMs = PHASE_MS;
-    applyTheme();
-    playChangeThen('night');
-  }
-}
-
-/* UI */
-function uiStart(){
-  unlockAudioOnce();
-  running = true;
-  paused = false;
-
-  phase = 'NIGHT';
-  phaseLeftMs = PHASE_MS;
-  applyTheme();
-}
-function uiToggle(){
-  unlockAudioOnce();
-  if(!running) return;
-  paused = !paused;
-
-  // 다시 재생하면 정속
-  if(!paused) speedMul = 1;
-}
-function uiFast(){
-  unlockAudioOnce();
-  if(!running) return;
-  paused = false;
-  speedMul = 10;
-}
-function uiReset(){
-  running = false;
-  paused = true;
-  speedMul = 1;
-
-  mainLeftMs = MAIN_TOTAL_MS;
-
-  phase = 'NIGHT';
-  phaseLeftMs = PHASE_MS;
-  applyTheme();
-
-  hungerLeftMs = HUNGER_MS;
-  renderHunger();
-
-  heartsMax = 10;
-  heartsFilled = 10;
-  renderHearts();
-
-  deathScore = 0;
-  killScore = 0;
-  killBoxEl.textContent = '0';
-  updateScoresUI();
-
-  allEmptyTriggered = false;
-  refillAt = 0;
-
-  failImgEl.style.display = 'none';
-  failHideAt = 0;
-
-  renderTimers();
-}
-
-/* 타이머 렌더 */
-function renderTimers(){
-  mainTimerEl.textContent = fmtMain(mainLeftMs);
-  mainTimerEl.classList.toggle('last10', mainLeftMs <= 10000);
-
-  nightClockEl.textContent = fmtPhase(phase === 'NIGHT' ? phaseLeftMs : PHASE_MS);
-  dayClockEl.textContent   = fmtPhase(phase === 'DAY'   ? phaseLeftMs : PHASE_MS);
-}
-
-/* 종료 */
-function endMain(){
-  running = false;
-  paused = true;
-  speedMul = 1;
-  playSound(audios.alarm);
-}
-
-/* 루프 */
-function loop(ts){
-  const rawDt = Math.min(0.05, (ts - lastTs) / 1000);
-  lastTs = ts;
-
-  if(failHideAt && ts >= failHideAt){
-    failHideAt = 0;
-    failImgEl.style.display = 'none';
-  }
-
-  // 전부 빈 하트 -> 1초 뒤 풀충전(확장된 칸 포함)
-  if(refillAt && ts >= refillAt){
-    refillAt = 0;
-    heartsFilled = heartsMax;      // ✅ 확장된 칸 포함 풀충전
-    renderHearts();
-    allEmptyTriggered = false;
-  }
-
-  if(running && !paused){
-    const dt = rawDt * speedMul;
-
-    mainLeftMs -= dt * 1000;
-    if(mainLeftMs <= 0){
-      mainLeftMs = 0;
-      renderTimers();
-      endMain();
-      requestAnimationFrame(loop);
-      return;
+    if(checkAllZombieKilled()){
+      zLock = true;
+      await playSequence([
+        { el: aChange, src: "static/change.mp3" },
+        { el: aClearZ, src: "static/clearzombie.mp3" }
+      ]);
+      showView(2);
+      startScreen2();
     }
+  });
+});
 
-    phaseLeftMs -= dt * 1000;
-    if(phaseLeftMs <= 0){
-      phaseLeftMs = 0;
-      renderTimers();
-      switchPhase();
-    }
-
-    // 허기짐은 낮일 때만 흐름
-    if(phase === 'DAY'){
-      hungerLeftMs -= dt * 1000;
-      if(hungerLeftMs <= 0){
-        hungerLeftMs = HUNGER_MS;
-        playSound(audios.empty);   // ✅ 허기짐 만땅=emptyheart
-        loseHeart();
-      }
-      renderHunger();
-    }
-  }
-
-  renderTimers();
-  requestAnimationFrame(loop);
+/* =========================================================
+   화면3: 미션 3개 토글
+   ========================================================= */
+let mLock = false;
+function checkAllMissionCleared(){
+  const slots = [...document.querySelectorAll('#mGrid .mSlot')];
+  return slots.every(s => s.classList.contains('cleared'));
+}
+function resetMissions(){
+  [...document.querySelectorAll('#mGrid .mSlot')].forEach(s=> s.classList.remove('cleared'));
+  mLock = false;
 }
 
-/* 초기화 */
+document.querySelectorAll('#mGrid .mSlot').forEach(slot=>{
+  slot.addEventListener('click', async ()=>{
+    warmUpAudio();
+    if(mLock) return;
+
+    slot.classList.toggle('cleared');
+
+    if(checkAllMissionCleared()){
+      mLock = true;
+
+      // 기존: change → clearmission 끝나면 화면1
+      // 변경: change → clearmission 끝나면 화면4(전환 영상)로
+      await playSequence([
+        { el: aChange, src: "static/change.mp3" },
+        { el: aCM, src: "static/clearmission.mp3" }
+      ]);
+
+      showView(4);
+      startScreen4(); // ✅ daytonight.mp4 + night.mp3 동시
+    }
+  });
+});
+
+/* =========================================================
+   화면2: nighttoday.mp4 + day.mp3
+   ========================================================= */
+const nightVideo = document.getElementById('nightVideo');
+let screen2Running = false;
+
+function stopScreen2(){
+  screen2Running = false;
+  try{ nightVideo.pause(); nightVideo.currentTime = 0; }catch(e){}
+  try{ aDay.pause(); aDay.currentTime = 0; }catch(e){}
+}
+function startScreen2(){
+  stopScreen2();
+  warmUpAudio();
+  screen2Running = true;
+
+  try{
+    nightVideo.currentTime = 0;
+    const pv = nightVideo.play();
+    if(pv && pv.catch) pv.catch(()=>{});
+  }catch(e){}
+  playSound(aDay, "static/day.mp3");
+
+  nightVideo.onended = ()=>{
+    if(!screen2Running) return;
+    setTimeout(()=>{
+      if(!screen2Running) return;
+      stopScreen2();
+      resetMissions();
+      showView(3);
+    }, 1000);
+  };
+
+  requestAnimationFrame(fitStage);
+}
+
+/* =========================================================
+   ✅ 화면4: daytonight.mp4 + night.mp3 (동시)
+   - 영상 끝나면 1초 뒤 화면1로 완전히 넘어감
+   ========================================================= */
+const dayToNightVideo = document.getElementById('dayToNightVideo');
+let screen4Running = false;
+
+function stopScreen4(){
+  screen4Running = false;
+  try{ dayToNightVideo.pause(); dayToNightVideo.currentTime = 0; }catch(e){}
+  try{ aNight.pause(); aNight.currentTime = 0; }catch(e){}
+}
+function startScreen4(){
+  stopScreen4();
+  warmUpAudio();
+  screen4Running = true;
+
+  try{
+    dayToNightVideo.currentTime = 0;
+    const pv = dayToNightVideo.play();
+    if(pv && pv.catch) pv.catch(()=>{});
+  }catch(e){}
+  playSound(aNight, "static/night.mp3");
+
+  dayToNightVideo.onended = ()=>{
+    if(!screen4Running) return;
+    setTimeout(()=>{
+      if(!screen4Running) return;
+      stopScreen4();
+
+      // ✅ 다음 사이클 준비
+      resetZombies();
+      resetMissions();
+      zLock = false;
+      mLock = false;
+
+      showView(1);
+    }, 1000);
+  };
+
+  requestAnimationFrame(fitStage);
+}
+
+/* =========================================================
+   초기
+   ========================================================= */
 (function init(){
-  failImgEl.style.display = 'none';
-  phase = 'NIGHT';
-  applyTheme();
+  updateTitles();
+  resetZombies();
+  resetMissions();
 
-  renderHearts();
-  updateScoresUI();
-  renderHunger();
-  renderTimers();
+  dutyNightEl.src = "static/duty-night.png";
+  dutyDayEl.src   = "static/duty-day.png";
 
-  fitStage();
-  requestAnimationFrame(loop);
+  showView(1);
 })();
 </script>
 </body>
